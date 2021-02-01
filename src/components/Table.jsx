@@ -13,7 +13,7 @@ function Table({ shortenedLinks, urlAPI, highlight }) {
           </tr>
         </thead>
         <tbody>
-          {shortenedLinks.map((value, index) => {
+          {shortenedLinks.reverse().map((value, index) => {
             return (
               <tr key={index}>
                 <td>

@@ -2,17 +2,15 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 import Table from "./components/Table";
-import {PulseLoader, BeatLoader} from 'react-spinners'
+import {BeatLoader} from 'react-spinners'
 
 function App() {
   const [shortenedLinks, setshortenedLinks] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [temp, setTemp] = useState([]);
+  const [statsURL, setStatsURL] = useState([]);
   const [link, setLink] = useState({ url: "" });
   const [highlight, sethighlight] = useState(false);
-
-  // const [statsURL, setStatsURL] = useState([{visits:0, lastSeen: '-'}]);
 
   const url = "https://cors-anywhere.herokuapp.com/https://impraise-shorty.herokuapp.com";
   const urlAPI = 'https://impraise-shorty.herokuapp.com';
@@ -26,23 +24,11 @@ function App() {
     event.preventDefault();
     setLoading(true);
 
-    // let data = {
-    //   url: link.url,
-    //   shortcode: "DNEPRg",
-    // };
-
-    // setshortenedLinks([...shortenedLinks, data]);
-    // setLink({ url: "" });
-    // sethighlight(true);
-    // setIsFetching(true);
-
     axios.post(`${url}/shorten`, link)
       .then(response => {
-        let shortcode = response.data.shortcode;
-
         const data = {
           url: link.url,
-          shortcode: shortcode
+          shortcode: response.data.shortcode
         };
 
         setshortenedLinks([...shortenedLinks, data]);
@@ -55,25 +41,24 @@ function App() {
 
   async function getStatsURL() {
     let tempData = { visits: 0, lastSeen: '-' };
-    let coba = [];
+    let tempArray = [];
 
-    await shortenedLinks.reverse().map(async (item) => {
+    await shortenedLinks.map(async (item) => {
       
       const response = await new Promise((resolve, reject) => {
         axios.get(`${url}/${item.shortcode}/stats`)
           .then(response => {
             resolve(response)
           })
-          .catch();
+          .catch(err => console.log(err));
       })
 
       let lastSeen = response.data.redirectCount > 0 ? new Date(`${response.data.lastSeenDate}`): '-';
       let visits = response.data.redirectCount;
 
       tempData = { ...item, visits: visits, lastSeen: lastSeen }
-      // tempData = { ...item, visits: 0, lastSeen: '7 minutes ago' }
-      coba.push(tempData);
-      await setTemp([...coba]);
+      tempArray.push(tempData);
+      await setStatsURL([...tempArray]);
     });
 
     await setIsFetching(false)
@@ -96,7 +81,7 @@ function App() {
   const clearLocalStorage = () => {
     localStorage.clear();
     setshortenedLinks([]);
-    setTemp([]);
+    setStatsURL([]);
   };
 
   return (
@@ -116,7 +101,6 @@ function App() {
           placeholder="Paste the link you want to shorten here"
           required
         />
-        {/* <input type="submit" value="Shorten this link" disabled={!link.url} /> */}
         <button type='submit' disabled={!link.url}>
           {loading ? <BeatLoader loading={loading} size={7} color={"#FFFFFF"}/> : "Shorten this link"}
         </button>
@@ -129,11 +113,9 @@ function App() {
             <span className='color-accent' onClick={clearLocalStorage}>Clear history</span>
           </div>
 
-          <Table shortenedLinks={temp} highlight={highlight} urlAPI={urlAPI}/>
+          <Table shortenedLinks={statsURL} highlight={highlight} urlAPI={urlAPI}/>
         </div>
-        : null}
-
-      
+        : null}      
     </div>
   );
 }
