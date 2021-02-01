@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
-import ListShortenLink from "./components/ListShortenLink";
 import Table from "./components/Table";
+import {PulseLoader, BeatLoader} from 'react-spinners'
 
 function App() {
   const [shortenedLinks, setshortenedLinks] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const [temp, setTemp] = useState([]);
-
-
   const [link, setLink] = useState({ url: "" });
   const [highlight, sethighlight] = useState(false);
+
   // const [statsURL, setStatsURL] = useState([{visits:0, lastSeen: '-'}]);
+
   const url = "https://cors-anywhere.herokuapp.com/https://impraise-shorty.herokuapp.com";
   const urlAPI = 'https://impraise-shorty.herokuapp.com';
 
@@ -24,58 +24,54 @@ function App() {
 
   const submitLinks = (event) => {
     event.preventDefault();
+    setLoading(true);
 
-    let data = {
-      url: link.url,
-      shortcode: "DNEPRg",
-    };
+    // let data = {
+    //   url: link.url,
+    //   shortcode: "DNEPRg",
+    // };
 
-    setshortenedLinks([...shortenedLinks, data]);
-    setLink({ url: "" });
-    sethighlight(true);
-    setIsFetching(true);
+    // setshortenedLinks([...shortenedLinks, data]);
+    // setLink({ url: "" });
+    // sethighlight(true);
+    // setIsFetching(true);
 
-    // axios.post(`${url}/shorten`, link)
-    //   .then(response => {
-    //     let shortcode = response.data.shortcode;
+    axios.post(`${url}/shorten`, link)
+      .then(response => {
+        let shortcode = response.data.shortcode;
 
-    //     const data = {
-    //       url: link.url,
-    //       shortcode: shortcode
-    //     };
+        const data = {
+          url: link.url,
+          shortcode: shortcode
+        };
 
-    //     setshortenedLinks([...shortenedLinks, data]);
-    //     setLink({ url: '' });
-    //     sethighlight(true);
-    //     setIsFetching(true);
-    //   })
-    //   .catch(err => console.log(err));
+        setshortenedLinks([...shortenedLinks, data]);
+        setLink({ url: '' });
+        sethighlight(true);
+        setIsFetching(true);
+      })
+      .catch(err => console.log(err));
   };
-
-  // useEffect(() => {
-  //   console.log('masuk: ', temp);
-  // }, [temp])
 
   async function getStatsURL() {
     let tempData = { visits: 0, lastSeen: '-' };
     let coba = [];
 
-    await shortenedLinks.reverse().map(async(item) => {
-      // console.log('item: ', item);
+    await shortenedLinks.reverse().map(async (item) => {
+      
+      const response = await new Promise((resolve, reject) => {
+        axios.get(`${url}/${item.shortcode}/stats`)
+          .then(response => {
+            resolve(response)
+          })
+          .catch();
+      })
 
-      // const response = await new Promise((resolve, reject) => {
-      //   axios.get(`${url}/${item.shortcode}/stats`)
-      //     .then(response => {
-      //       resolve(response)
-      //     })
-      //     .catch();
-      // })
+      let lastSeen = response.data.redirectCount > 0 ? new Date(`${response.data.lastSeenDate}`): '-';
+      let visits = response.data.redirectCount;
 
-      // let lastSeen = response.data.redirectCount > 0 ? new Date(`${response.data.lastSeenDate}`): '-';
-      // let visits = response.data.redirectCount;
-
-      // tempData = { ...item, visits: visits, lastSeen: lastSeen }
-      tempData = { ...item, visits: 0, lastSeen: '7 minutes ago' }
+      tempData = { ...item, visits: visits, lastSeen: lastSeen }
+      // tempData = { ...item, visits: 0, lastSeen: '7 minutes ago' }
       coba.push(tempData);
       await setTemp([...coba]);
     });
@@ -85,7 +81,8 @@ function App() {
 
   useEffect(() => {
     if (isFetching) {
-      getStatsURL();
+      getStatsURL();      
+      setLoading(false);
       localStorage.setItem("shortenedLinks", JSON.stringify(shortenedLinks));
     }
   }, [isFetching]);
@@ -119,7 +116,10 @@ function App() {
           placeholder="Paste the link you want to shorten here"
           required
         />
-        <input type="submit" value="Shorten this link" disabled={!link.url} />
+        {/* <input type="submit" value="Shorten this link" disabled={!link.url} /> */}
+        <button type='submit' disabled={!link.url}>
+          {loading ? <BeatLoader loading={loading} size={7} color={"#FFFFFF"}/> : "Shorten this link"}
+        </button>
       </form>
 
       {shortenedLinks.length > 0 ? 
